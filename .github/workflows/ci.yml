@@ -10,7 +10,7 @@ jobs:
       - name: system deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libwayland-dev wayland-protocols meson ninja-build
+          sudo apt-get install -y libgtk-4-dev libgtk-3-dev libwayland-dev wayland-protocols meson ninja-build
           git clone --depth 1 https://github.com/wmww/gtk-layer-shell /tmp/gtk-layer-shell
           meson setup /tmp/gtk-layer-shell/build /tmp/gtk-layer-shell
           ninja -C /tmp/gtk-layer-shell/build
