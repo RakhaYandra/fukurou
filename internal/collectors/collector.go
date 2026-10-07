@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -93,6 +94,34 @@ func (r *Registry) Register(c Collector) error {
 	}
 	r.collectors[c.Name()] = c
 	return nil
+}
+
+// CollectAll runs every registered collector concurrently, each with its
+// own timeout. A failing collector yields an unavailable Snapshot;
+// it never aborts the others.
+func (r *Registry) CollectAll(ctx context.Context, timeout time.Duration) []Snapshot {
+	names := r.Names()
+	out := make([]Snapshot, len(names))
+	var wg sync.WaitGroup
+	for i, n := range names {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cctx, cancel := context.WithTimeout(ctx, timeout)
+			defer cancel()
+			snap, err := r.collectors[n].Collect(cctx)
+			if err != nil {
+				snap = Snapshot{Name: n, At: time.Now(), Err: err}
+			}
+			snap.Name = n
+			if snap.At.IsZero() {
+				snap.At = time.Now()
+			}
+			out[i] = snap
+		}()
+	}
+	wg.Wait()
+	return out
 }
 
 // Names returns sorted collector names.
