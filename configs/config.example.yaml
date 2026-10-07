@@ -1,0 +1,18 @@
+version: 1
+
+panel:
+  width: 520
+  position: center
+  opacity: 0.96
+
+refresh:
+  interval: 1s
+
+modules:
+  system: true
+  cpu: true
+  memory: true
+  gpu: true
+  storage: true
+  network: true
+  battery: true
