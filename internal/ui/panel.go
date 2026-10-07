@@ -43,7 +43,9 @@ levelbar block.filled { background-color: #7aa2f7; border-radius: 4px; }
 // Run shows the live dashboard until dismissed (ESC, close, or ctx cancel).
 // Returns the process exit code.
 func Run(ctx context.Context, cfg config.Config, version string) int {
-	app := gtk.NewApplication(appID, gio.ApplicationFlagsNone)
+	// ApplicationFlags(0) == G_APPLICATION_DEFAULT_FLAGS; avoids the
+	// deprecated ApplicationFlagsNone alias in this gotk4 version.
+	app := gtk.NewApplication(appID, gio.ApplicationFlags(0))
 	app.ConnectActivate(func() { activate(ctx, app, cfg, version) })
 	go func() {
 		<-ctx.Done()

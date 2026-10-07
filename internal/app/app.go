@@ -47,17 +47,22 @@ func (a *App) debug(ctx context.Context) error {
 	}
 	fmt.Printf("fukurou %s\n\n", a.version)
 	for _, snap := range a.registry.CollectAll(ctx, collectorTimeout) {
-		status := "●"
-		if !snap.Available || snap.Err != nil {
-			status = "○"
-		}
-		body := snap.Summary
-		if snap.Err != nil {
-			body = "unavailable (" + snap.Err.Error() + ")"
-		}
-		fmt.Printf("%s %s\n%s\n\n", status, strings.ToUpper(snap.Name), indent(body))
+		fmt.Print(formatSnapshot(snap))
 	}
 	return nil
+}
+
+// formatSnapshot renders one snapshot for --debug. Pure, tested.
+func formatSnapshot(snap collectors.Snapshot) string {
+	status := "●"
+	if !snap.Available || snap.Err != nil {
+		status = "○"
+	}
+	body := snap.Summary
+	if snap.Err != nil {
+		body = "unavailable (" + snap.Err.Error() + ")"
+	}
+	return fmt.Sprintf("%s %s\n%s\n\n", status, strings.ToUpper(snap.Name), indent(body))
 }
 
 func indent(s string) string {

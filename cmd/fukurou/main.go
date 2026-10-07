@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -33,8 +34,13 @@ func main() {
 	}
 
 	cfg, err := config.Load(configPath)
+	level := slog.LevelWarn
+	if debug {
+		level = slog.LevelDebug
+	}
+	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "fukurou: config error (%v), using defaults\n", err)
+		log.Warn("config error, using defaults", "err", err)
 		cfg = config.Default()
 	}
 
@@ -44,7 +50,7 @@ func main() {
 	a := app.New(cfg, version)
 	if debug {
 		if err := a.Run(ctx, true); err != nil {
-			fmt.Fprintln(os.Stderr, "fukurou:", err)
+			log.Error("debug run failed", "err", err)
 			os.Exit(1)
 		}
 		return
