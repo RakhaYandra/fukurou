@@ -69,7 +69,7 @@ func TestDefaultRegistryRespectsFilter(t *testing.T) {
 	if got := r.Names(); len(got) != 1 || got[0] != "cpu" {
 		t.Fatalf("names = %v", got)
 	}
-	if len(DefaultRegistry(func(string) bool { return true }).Names()) != 6 {
-		t.Fatal("expected 6 collectors")
+	if len(DefaultRegistry(func(string) bool { return true }).Names()) != 7 {
+		t.Fatal("expected 7 collectors")
 	}
 }

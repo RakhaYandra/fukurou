@@ -14,7 +14,7 @@ func TestRegistryFollowsLoadedConfig(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "config.yaml")
 	body := "version: 1\npanel:\n  width: 640\nrefresh:\n  interval: 500ms\n" +
 		"modules:\n  cpu: true\n  gpu: false\n  memory: true\n" +
-		"  storage: true\n  network: true\n  system: true\n"
+		"  storage: true\n  network: true\n  system: true\n  battery: true\n"
 	if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestRegistryFollowsLoadedConfig(t *testing.T) {
 			t.Fatalf("gpu should be disabled: %v", names)
 		}
 	}
-	if len(names) != 5 {
+	if len(names) != 6 {
 		t.Fatalf("names = %v", names)
 	}
 }

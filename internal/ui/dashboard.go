@@ -8,7 +8,7 @@ import (
 
 // displayOrder is fixed regardless of registry sort: identity first,
 // then load, then the rest.
-var displayOrder = []string{"system", "cpu", "memory", "gpu", "storage", "network"}
+var displayOrder = []string{"system", "cpu", "memory", "gpu", "storage", "network", "battery"}
 
 // Dashboard owns the module cards in display order. All methods run on
 // the GTK main thread (updates arrive via glib.IdleAdd).

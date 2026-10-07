@@ -3,6 +3,7 @@ package collectors
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -46,6 +47,50 @@ func TestGPUGracefulFallback(t *testing.T) {
 		t.Fatal("should be unavailable with no GPU sources")
 	}
 	if !strings.Contains(snap.Summary, "unavailable") {
+		t.Fatalf("summary = %q", snap.Summary)
+	}
+}
+
+func TestAMDSysfs(t *testing.T) {
+	drm := t.TempDir()
+	dev := filepath.Join(drm, "card2", "device")
+	if err := os.MkdirAll(dev, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for f, content := range map[string]string{
+		"gpu_busy_percent":    "37\n",
+		"mem_info_vram_used":  "1073741824\n",
+		"mem_info_vram_total": "4294967296\n",
+	} {
+		if err := os.WriteFile(filepath.Join(dev, f), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	hw := t.TempDir()
+	writeSupply(t, hw, "hwmon5", map[string]string{"name": "amdgpu\n", "temp1_input": "61000\n"})
+
+	oldDrm, oldHw := drmRoot, hwmonRoot
+	drmRoot, hwmonRoot = drm, hw
+	t.Cleanup(func() { drmRoot, hwmonRoot = oldDrm, oldHw })
+
+	oldExec := execSmi
+	execSmi = func(context.Context) (string, error) { return "", os.ErrNotExist }
+	t.Cleanup(func() { execSmi = oldExec })
+	oldPath := nvmlLibPath
+	nvmlLibPath = "nonexistent-lib.so"
+	t.Cleanup(func() { nvmlLibPath = oldPath })
+
+	snap, err := (&GPUCollector{}).Collect(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !snap.Available {
+		t.Fatal("AMD sysfs GPU should be available")
+	}
+	if !snap.HasUsage || snap.Usage != 37 {
+		t.Fatalf("usage = %v/%v", snap.Usage, snap.HasUsage)
+	}
+	if !strings.Contains(snap.Summary, "61°C") {
 		t.Fatalf("summary = %q", snap.Summary)
 	}
 }
