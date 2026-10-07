@@ -31,6 +31,7 @@ window {
 .mod-name { color: #9aa3b2; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
 .mono { color: #e6e9ef; font-size: 13px; font-family: monospace; }
 .dim { color: #565f6e; font-size: 12px; }
+.ok { color: #9ece6a; font-size: 12px; }
 .card {
 	background-color: #22262c;
 	border-radius: 8px;
@@ -89,10 +90,20 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 	root.Append(dash.box)
 	win.SetChild(root)
 
+	reg := collectors.DefaultRegistry(cfg.Enabled)
+	refresh := func() {
+		snaps := reg.CollectAll(ctx, collectorTimeout)
+		glib.IdleAdd(func() { dash.update(snaps) })
+	}
+
 	keys := gtk.NewEventControllerKey()
 	keys.ConnectKeyPressed(func(keyval, _ uint, _ gdk.ModifierType) bool {
-		if keyval == gdk.KEY_Escape {
+		switch keyval {
+		case gdk.KEY_Escape, gdk.KEY_q:
 			app.Quit()
+			return true
+		case gdk.KEY_r:
+			refresh()
 			return true
 		}
 		return false
@@ -101,11 +112,6 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 
 	win.Present()
 
-	reg := collectors.DefaultRegistry(cfg.Enabled)
-	refresh := func() {
-		snaps := reg.CollectAll(ctx, collectorTimeout)
-		glib.IdleAdd(func() { dash.update(snaps) })
-	}
 	go func() {
 		refresh() // immediate seed; second tick fills CPU % and net rates
 		ticker := time.NewTicker(cfg.Refresh.Interval.Duration)

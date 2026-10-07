@@ -34,6 +34,7 @@ func newModuleCard(name string) *moduleCard {
 	body.AddCSSClass("mono")
 
 	bar := gtk.NewLevelBar()
+	bar.SetMode(gtk.LevelBarModeContinuous)
 	bar.SetMinValue(0)
 	bar.SetMaxValue(100)
 	bar.SetValue(0)
@@ -47,11 +48,15 @@ func newModuleCard(name string) *moduleCard {
 func (c *moduleCard) update(snap collectors.Snapshot) {
 	if !snap.Available || snap.Err != nil {
 		c.status.SetLabel("○")
+		c.status.RemoveCSSClass("ok")
+		c.status.AddCSSClass("dim")
 		c.body.SetLabel("unavailable")
 		c.bar.SetVisible(false)
 		return
 	}
 	c.status.SetLabel("●")
+	c.status.RemoveCSSClass("dim")
+	c.status.AddCSSClass("ok")
 	c.body.SetLabel(snap.Summary)
 	if snap.HasUsage {
 		c.bar.SetVisible(true)
