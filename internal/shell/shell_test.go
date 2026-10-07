@@ -2,6 +2,18 @@ package shell
 
 import "testing"
 
+func TestNormalizePosition(t *testing.T) {
+	cases := map[string]int{
+		"center": PositionCenter, "top": PositionTop, "bottom": PositionBottom,
+		"": PositionCenter, "sideways": PositionCenter, "TOP": PositionCenter,
+	}
+	for in, want := range cases {
+		if got := NormalizePosition(in); got != want {
+			t.Errorf("NormalizePosition(%q) = %d, want %d", in, got, want)
+		}
+	}
+}
+
 func TestIsWayland(t *testing.T) {
 	cases := []struct {
 		display, backend string

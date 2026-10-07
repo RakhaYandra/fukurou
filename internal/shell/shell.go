@@ -5,6 +5,19 @@ import (
 	"strings"
 )
 
+// NormalizePosition maps user input to a Position constant.
+// Unknown values fall back to center.
+func NormalizePosition(s string) int {
+	switch s {
+	case "top":
+		return PositionTop
+	case "bottom":
+		return PositionBottom
+	default:
+		return PositionCenter
+	}
+}
+
 // IsWayland reports whether layer-shell can be used.
 // GDK_BACKEND is a preference list ("wayland,x11,*"); only an explicit
 // x11-first (or missing WAYLAND_DISPLAY) disables the layer path.

@@ -3,7 +3,6 @@ package ui
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
@@ -50,7 +49,9 @@ func Run(ctx context.Context, cfg config.Config, version string) int {
 		<-ctx.Done()
 		glib.IdleAdd(app.Quit)
 	}()
-	return app.Run(os.Args)
+	// Flags are parsed in main; GTK must not see them (GApplication
+	// rejects unknown options like --config).
+	return app.Run(nil)
 }
 
 func activate(ctx context.Context, app *gtk.Application, cfg config.Config, version string) {
@@ -64,7 +65,7 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 	win.SetOpacity(cfg.Panel.Opacity)
 
 	if shell.IsWayland() {
-		shell.ConfigureOverlay(win.Native(), "fukurou")
+		shell.ConfigureOverlay(win.Native(), "fukurou", shell.NormalizePosition(cfg.Panel.Position))
 	}
 
 	root := gtk.NewBox(gtk.OrientationVertical, 10)
@@ -82,7 +83,7 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 	head.Append(ver)
 	root.Append(head)
 
-	dash := newDashboard()
+	dash := newDashboard(cfg.Enabled)
 	root.Append(dash.box)
 	win.SetChild(root)
 

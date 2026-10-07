@@ -17,10 +17,13 @@ type Dashboard struct {
 	cards map[string]*moduleCard
 }
 
-func newDashboard() *Dashboard {
+func newDashboard(enabled func(string) bool) *Dashboard {
 	box := gtk.NewBox(gtk.OrientationVertical, 10)
 	d := &Dashboard{box: box, cards: map[string]*moduleCard{}}
 	for _, name := range displayOrder {
+		if !enabled(name) {
+			continue
+		}
 		card := newModuleCard(name)
 		d.cards[name] = card
 		box.Append(card.root)
