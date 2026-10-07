@@ -58,7 +58,7 @@ func (c *CPUCollector) Collect(_ context.Context) (Snapshot, error) {
 		m.Temperature = &t
 	}
 
-	return Snapshot{At: time.Now(), Available: true, Summary: formatCPUSummary(m)}, nil
+	return Snapshot{At: time.Now(), Available: true, Summary: formatCPUSummary(m), Usage: m.Usage, HasUsage: true}, nil
 }
 
 // parseCPUStat parses the aggregate "cpu ..." line of /proc/stat.

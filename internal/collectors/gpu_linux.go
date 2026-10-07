@@ -41,16 +41,19 @@ type GPUCollector struct {
 func (c *GPUCollector) Name() string { return "gpu" }
 
 func (c *GPUCollector) Collect(ctx context.Context) (Snapshot, error) {
+	set := func(m GPUMetrics) Snapshot {
+		return Snapshot{At: time.Now(), Available: true, Summary: formatGPUSummary(m), Usage: m.Usage, HasUsage: true}
+	}
 	if m, err := c.tryNVML(); err == nil {
-		return Snapshot{At: time.Now(), Available: true, Summary: formatGPUSummary(m)}, nil
+		return set(m), nil
 	}
 	if out, err := execSmi(ctx); err == nil {
 		if m, err := parseSmiCSV(out); err == nil {
-			return Snapshot{At: time.Now(), Available: true, Summary: formatGPUSummary(m)}, nil
+			return set(m), nil
 		}
 	}
 	if m, err := amdGPU(); err == nil {
-		return Snapshot{At: time.Now(), Available: true, Summary: formatGPUSummary(m)}, nil
+		return set(m), nil
 	}
 	return Snapshot{At: time.Now(), Available: false, Summary: "GPU information unavailable"}, nil
 }

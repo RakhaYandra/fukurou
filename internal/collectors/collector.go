@@ -26,7 +26,10 @@ type Snapshot struct {
 	At        time.Time
 	Available bool
 	Summary   string
-	Err       error
+	// Usage is 0-100 for bar rendering; only meaningful if HasUsage.
+	Usage    float64
+	HasUsage bool
+	Err      error
 }
 
 // SystemMetrics aggregates all domains for one refresh tick.

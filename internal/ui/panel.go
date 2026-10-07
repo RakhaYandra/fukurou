@@ -1,21 +1,26 @@
-// Package ui owns the GTK floating panel. Metrics land in Phase 3;
-// Phase 2 proves the shell: centered overlay, keyboard, ESC dismissal.
+// Package ui owns the GTK floating panel: module cards with live metrics.
 package ui
 
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 
+	"github.com/RakhaYandra/fukurou/internal/collectors"
 	"github.com/RakhaYandra/fukurou/internal/config"
 	"github.com/RakhaYandra/fukurou/internal/shell"
 )
 
 const appID = "com.github.RakhaYandra.fukurou"
+
+// collectorTimeout bounds each collector per tick; stragglers render
+// as unavailable instead of stalling the dashboard.
+const collectorTimeout = 2 * time.Second
 
 const css = `
 window {
@@ -23,15 +28,24 @@ window {
 	border-radius: 12px;
 	border: 1px solid #343941;
 }
-.title { color: #e6e9ef; font-size: 20px; font-weight: 700; }
-.subtitle { color: #9aa3b2; font-size: 13px; }
+.title { color: #e6e9ef; font-size: 16px; font-weight: 700; }
+.mod-name { color: #9aa3b2; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+.mono { color: #e6e9ef; font-size: 13px; font-family: monospace; }
+.dim { color: #565f6e; font-size: 12px; }
+.card {
+	background-color: #22262c;
+	border-radius: 8px;
+	padding: 10px 12px;
+}
+levelbar trough { background-color: #343941; border-radius: 4px; min-height: 6px; }
+levelbar block.filled { background-color: #7aa2f7; border-radius: 4px; }
 `
 
-// Run shows the panel until dismissed (ESC, close, or ctx cancel).
+// Run shows the live dashboard until dismissed (ESC, close, or ctx cancel).
 // Returns the process exit code.
 func Run(ctx context.Context, cfg config.Config, version string) int {
 	app := gtk.NewApplication(appID, gio.ApplicationFlagsNone)
-	app.ConnectActivate(func() { activate(app, cfg, version) })
+	app.ConnectActivate(func() { activate(ctx, app, cfg, version) })
 	go func() {
 		<-ctx.Done()
 		glib.IdleAdd(app.Quit)
@@ -39,12 +53,12 @@ func Run(ctx context.Context, cfg config.Config, version string) int {
 	return app.Run(os.Args)
 }
 
-func activate(app *gtk.Application, cfg config.Config, version string) {
+func activate(ctx context.Context, app *gtk.Application, cfg config.Config, version string) {
 	applyCSS()
 
 	win := gtk.NewApplicationWindow(app)
 	win.SetTitle("Fukurou")
-	win.SetDefaultSize(cfg.Panel.Width, 420)
+	win.SetDefaultSize(cfg.Panel.Width, -1)
 	win.SetResizable(false)
 	win.SetDecorated(false)
 	win.SetOpacity(cfg.Panel.Opacity)
@@ -53,17 +67,24 @@ func activate(app *gtk.Application, cfg config.Config, version string) {
 		shell.ConfigureOverlay(win.Native(), "fukurou")
 	}
 
-	box := gtk.NewBox(gtk.OrientationVertical, 8)
-	box.SetHAlign(gtk.AlignCenter)
-	box.SetVAlign(gtk.AlignCenter)
+	root := gtk.NewBox(gtk.OrientationVertical, 10)
+	root.SetMarginTop(20)
+	root.SetMarginBottom(20)
+	root.SetMarginStart(20)
+	root.SetMarginEnd(20)
 
+	head := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	title := gtk.NewLabel("Fukurou 梟")
 	title.AddCSSClass("title")
-	sub := gtk.NewLabel("system dashboard " + version + "\nmetrics arrive in Phase 3 — try --debug")
-	sub.AddCSSClass("subtitle")
-	box.Append(title)
-	box.Append(sub)
-	win.SetChild(box)
+	ver := gtk.NewLabel(version)
+	ver.AddCSSClass("dim")
+	head.Append(title)
+	head.Append(ver)
+	root.Append(head)
+
+	dash := newDashboard()
+	root.Append(dash.box)
+	win.SetChild(root)
 
 	keys := gtk.NewEventControllerKey()
 	keys.ConnectKeyPressed(func(keyval, _ uint, _ gdk.ModifierType) bool {
@@ -76,6 +97,25 @@ func activate(app *gtk.Application, cfg config.Config, version string) {
 	win.AddController(keys)
 
 	win.Present()
+
+	reg := collectors.DefaultRegistry(cfg.Enabled)
+	refresh := func() {
+		snaps := reg.CollectAll(ctx, collectorTimeout)
+		glib.IdleAdd(func() { dash.update(snaps) })
+	}
+	go func() {
+		refresh() // immediate seed; second tick fills CPU % and net rates
+		ticker := time.NewTicker(cfg.Refresh.Interval.Duration)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				refresh()
+			}
+		}
+	}()
 }
 
 func applyCSS() {

@@ -63,3 +63,13 @@ func TestCollectAllIsolatesFailures(t *testing.T) {
 		t.Fatalf("bad = %+v", bad)
 	}
 }
+
+func TestDefaultRegistryRespectsFilter(t *testing.T) {
+	r := DefaultRegistry(func(name string) bool { return name == "cpu" })
+	if got := r.Names(); len(got) != 1 || got[0] != "cpu" {
+		t.Fatalf("names = %v", got)
+	}
+	if len(DefaultRegistry(func(string) bool { return true }).Names()) != 6 {
+		t.Fatal("expected 6 collectors")
+	}
+}

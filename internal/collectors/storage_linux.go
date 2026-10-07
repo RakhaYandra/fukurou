@@ -22,7 +22,7 @@ func (c *StorageCollector) Collect(_ context.Context) (Snapshot, error) {
 		return Snapshot{}, fmt.Errorf("collect storage metrics for %s: %w", path, err)
 	}
 	m := storageFromStatfs(path, st.Blocks, st.Bfree, st.Bavail, uint64(st.Bsize))
-	return Snapshot{At: time.Now(), Available: true, Summary: formatStorageSummary(m)}, nil
+	return Snapshot{At: time.Now(), Available: true, Summary: formatStorageSummary(m), Usage: m.Usage, HasUsage: true}, nil
 }
 
 func storageFromStatfs(path string, blocks, bfree, bavail, bsize uint64) StorageMetrics {

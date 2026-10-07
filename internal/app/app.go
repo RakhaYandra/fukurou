@@ -24,21 +24,7 @@ type App struct {
 
 // New builds the app, registering only enabled collectors.
 func New(cfg config.Config, version string) *App {
-	a := &App{cfg: cfg, version: version, registry: collectors.NewRegistry()}
-	all := map[string]collectors.Collector{
-		"system":  &collectors.SystemCollector{},
-		"cpu":     &collectors.CPUCollector{},
-		"memory":  &collectors.MemoryCollector{},
-		"gpu":     &collectors.GPUCollector{},
-		"storage": &collectors.StorageCollector{},
-		"network": &collectors.NetworkCollector{},
-	}
-	for name, c := range all {
-		if cfg.Enabled(name) {
-			_ = a.registry.Register(c) // names unique by construction
-		}
-	}
-	return a
+	return &App{cfg: cfg, version: version, registry: collectors.DefaultRegistry(cfg.Enabled)}
 }
 
 // Run starts the app. Debug mode prints two live ticks and exits;

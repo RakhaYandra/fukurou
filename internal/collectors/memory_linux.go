@@ -22,7 +22,7 @@ func (c *MemoryCollector) Collect(_ context.Context) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, fmt.Errorf("collect memory metrics: %w", err)
 	}
-	return Snapshot{At: time.Now(), Available: true, Summary: formatMemorySummary(m)}, nil
+	return Snapshot{At: time.Now(), Available: true, Summary: formatMemorySummary(m), Usage: m.Usage, HasUsage: true}, nil
 }
 
 func parseMeminfo(data []byte) (MemoryMetrics, error) {
