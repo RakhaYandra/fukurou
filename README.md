@@ -3,8 +3,8 @@
 Lightweight floating system dashboard for Linux (Wayland/Hyprland).
 Read-only: observe, don't control. No root, no telemetry, no network calls.
 
-> Status: **v0.1 Phase 0** — foundation only. Collectors land in Phase 1,
-> GTK floating panel in Phase 2.
+> Status: **v0.1 Phase 2** — floating panel works (layer-shell overlay,
+> centered, ESC/SIGTERM dismiss). Metrics render in Phase 3.
 
 ## Quickstart
 

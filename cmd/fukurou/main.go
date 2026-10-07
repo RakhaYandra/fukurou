@@ -11,6 +11,7 @@ import (
 
 	"github.com/RakhaYandra/fukurou/internal/app"
 	"github.com/RakhaYandra/fukurou/internal/config"
+	"github.com/RakhaYandra/fukurou/internal/ui"
 )
 
 var version = "v0.1.0-dev"
@@ -41,8 +42,12 @@ func main() {
 	defer stop()
 
 	a := app.New(cfg, version)
-	if err := a.Run(ctx, debug); err != nil {
-		fmt.Fprintln(os.Stderr, "fukurou:", err)
-		os.Exit(1)
+	if debug {
+		if err := a.Run(ctx, true); err != nil {
+			fmt.Fprintln(os.Stderr, "fukurou:", err)
+			os.Exit(1)
+		}
+		return
 	}
+	os.Exit(ui.Run(ctx, cfg, version))
 }

@@ -1,0 +1,9 @@
+# Fukurou example Hyprland integration. Copy relevant lines into hyprland.conf.
+# Assumes fukurou is on PATH (e.g. ~/Projects/fukurou/bin/fukurou).
+
+# Toggle key (single-shot: opens panel, ESC closes it)
+bind = SUPER, F, exec, fukurou
+
+# Keep the layer surface floating and borderless
+layerrule = noanim, fukurou
+layerrule = blur, fukurou
