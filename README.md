@@ -3,7 +3,7 @@
 Lightweight floating system dashboard for Linux (Wayland/Hyprland).
 Read-only: observe, don't control. No root, no telemetry, no network calls.
 
-> Status: **v0.1.0** — floating dashboard, 7 live modules, config wired.
+> Status: **v0.2.0-dev** — 8 live modules, per-core CPU, light theme.
 
 ## Requirements
 
@@ -53,11 +53,12 @@ panel:
   width: 520        # 320–1200, clamped
   position: center  # center | top | bottom (other → center)
   opacity: 0.96     # 0.3–1.0, clamped
+  theme: dark       # dark | light (other → dark)
 refresh:
   interval: 1s      # 250ms–5s, clamped
 modules:
   cpu: true         # false hides the card entirely
-  gpu: false
+  sensors: true     # hwmon temps beyond CPU/GPU (disks, board, NIC)
 ```
 
 Rules: missing file → defaults silently (first run). Invalid YAML →
@@ -84,6 +85,7 @@ Fast · Minimal · Readable · Non-intrusive · Read-only · Extensible
 ## Screenshots
 
 ![Fukurou dashboard](docs/screenshots/panel.png)
+![Fukurou light theme](docs/screenshots/panel-light.png)
 
 ## Troubleshooting
 

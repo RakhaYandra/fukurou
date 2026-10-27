@@ -31,7 +31,7 @@ func TestRegistryFollowsLoadedConfig(t *testing.T) {
 			t.Fatalf("gpu should be disabled: %v", names)
 		}
 	}
-	if len(names) != 6 {
+	if len(names) != 7 {
 		t.Fatalf("names = %v", names)
 	}
 }

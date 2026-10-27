@@ -51,7 +51,8 @@ type CPUMetrics struct {
 	Model       string
 	Usage       float64 // 0-100
 	Temperature *float64
-	Frequency   float64 // GHz
+	Frequency   float64   // GHz
+	PerCore     []float64 // 0-100 per logical core, empty until second tick
 }
 
 type MemoryMetrics struct {

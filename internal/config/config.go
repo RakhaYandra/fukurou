@@ -22,6 +22,7 @@ type PanelConfig struct {
 	Width    int     `yaml:"width"`
 	Position string  `yaml:"position"`
 	Opacity  float64 `yaml:"opacity"`
+	Theme    string  `yaml:"theme"`
 }
 
 type RefreshConfig struct {
@@ -48,10 +49,10 @@ func (d *Duration) UnmarshalYAML(value *yaml.Node) error {
 func Default() Config {
 	return Config{
 		Version: 1,
-		Panel:   PanelConfig{Width: 520, Position: "center", Opacity: 0.96},
+		Panel:   PanelConfig{Width: 520, Position: "center", Opacity: 0.96, Theme: "dark"},
 		Refresh: RefreshConfig{Interval: Duration{time.Second}},
 		Modules: map[string]bool{
-			"system": true, "cpu": true, "memory": true,
+			"system": true, "cpu": true, "memory": true, "sensors": true,
 			"gpu": true, "storage": true, "network": true, "battery": true,
 		},
 	}
@@ -104,6 +105,9 @@ func (c Config) Normalize() Config {
 	}
 	if c.Panel.Opacity > 1 {
 		c.Panel.Opacity = 1
+	}
+	if c.Panel.Theme != "light" && c.Panel.Theme != "dark" {
+		c.Panel.Theme = "dark"
 	}
 	d := c.Refresh.Interval.Duration
 	if d < 250*time.Millisecond {

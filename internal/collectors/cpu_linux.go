@@ -19,9 +19,10 @@ var hwmonRoot = "/sys/class/hwmon"
 // reports 0 usage. Callers refresh periodically (the --debug command
 // does two passes).
 type CPUCollector struct {
-	mu      sync.Mutex
-	prev    cpuSample
-	hasPrev bool
+	mu        sync.Mutex
+	prev      cpuSample
+	prevCores []cpuSample
+	hasPrev   bool
 }
 
 type cpuSample struct{ idle, total uint64 }
@@ -38,9 +39,11 @@ func (c *CPUCollector) Collect(_ context.Context) (Snapshot, error) {
 		return Snapshot{}, fmt.Errorf("collect CPU metrics: %w", err)
 	}
 
+	cores, _ := parseCPUCores(statData)
+
 	c.mu.Lock()
-	prev, hasPrev := c.prev, c.hasPrev
-	c.prev, c.hasPrev = cur, true
+	prev, hasPrev, prevCores := c.prev, c.hasPrev, c.prevCores
+	c.prev, c.hasPrev, c.prevCores = cur, true, cores
 	c.mu.Unlock()
 
 	var usage float64
@@ -50,6 +53,12 @@ func (c *CPUCollector) Collect(_ context.Context) (Snapshot, error) {
 
 	var m CPUMetrics
 	m.Usage = usage
+	if hasPrev && len(cores) == len(prevCores) {
+		m.PerCore = make([]float64, len(cores))
+		for i := range cores {
+			m.PerCore[i] = cpuUsagePercent(prevCores[i], cores[i])
+		}
+	}
 	if data, err := readFile("/proc/cpuinfo"); err == nil {
 		m.Model = parseCPUModel(data)
 		m.Frequency = parseCPUFreqGHz(data)
@@ -67,25 +76,46 @@ func parseCPUStat(data []byte) (cpuSample, error) {
 		if !strings.HasPrefix(line, "cpu ") {
 			continue
 		}
-		f := strings.Fields(line)[1:]
-		if len(f) < 4 {
-			return cpuSample{}, fmt.Errorf("short cpu line: %q", line)
-		}
-		nums := make([]uint64, len(f))
-		for i, s := range f {
-			n, err := strconv.ParseUint(s, 10, 64)
-			if err != nil {
-				return cpuSample{}, fmt.Errorf("bad cpu counter %q: %w", s, err)
-			}
-			nums[i] = n
-		}
-		var total uint64
-		for _, n := range nums {
-			total += n
-		}
-		return cpuSample{idle: nums[3] + nums[4], total: total}, nil
+		return parseCPULine(strings.Fields(line))
 	}
 	return cpuSample{}, fmt.Errorf("no aggregate cpu line found")
+}
+
+func parseCPUCores(data []byte) ([]cpuSample, error) {
+	var out []cpuSample
+	for _, line := range strings.Split(string(data), "\n") {
+		if !strings.HasPrefix(line, "cpu") || strings.HasPrefix(line, "cpu ") {
+			continue
+		}
+		s, err := parseCPULine(strings.Fields(line))
+		if err != nil {
+			continue
+		}
+		out = append(out, s)
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("no per-core cpu lines found")
+	}
+	return out, nil
+}
+
+func parseCPULine(f []string) (cpuSample, error) {
+	if len(f) < 5 {
+		return cpuSample{}, fmt.Errorf("short cpu line")
+	}
+	nums := make([]uint64, len(f)-1)
+	for i, s := range f[1:] {
+		n, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return cpuSample{}, fmt.Errorf("bad cpu counter %q: %w", s, err)
+		}
+		nums[i] = n
+	}
+	var total uint64
+	for _, n := range nums {
+		total += n
+	}
+	return cpuSample{idle: nums[3] + nums[4], total: total}, nil
 }
 
 // cpuUsagePercent returns 0-100 from two samples, clamped and NaN-safe.
@@ -191,6 +221,17 @@ func formatCPUSummary(m CPUMetrics) string {
 	}
 	if m.Frequency > 0 {
 		fmt.Fprintf(&b, " · %.2f GHz", m.Frequency)
+	}
+	if len(m.PerCore) > 0 {
+		b.WriteString("\ncores:")
+		const max = 16
+		for i, u := range m.PerCore {
+			if i == max {
+				fmt.Fprintf(&b, " +%d", len(m.PerCore)-max)
+				break
+			}
+			fmt.Fprintf(&b, " %.0f", u)
+		}
 	}
 	return b.String()
 }

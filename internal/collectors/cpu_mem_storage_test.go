@@ -159,3 +159,50 @@ func TestStorageCollectRoot(t *testing.T) {
 		t.Fatal("root should be available")
 	}
 }
+
+func TestParseCPUCores(t *testing.T) {
+	cores, err := parseCPUCores([]byte("cpu  100 0 50 850 0 0 0 0 0 0\ncpu0 50 0 25 425 0 0 0 0 0 0\ncpu1 50 0 25 425 0 0 0 0 0 0\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cores) != 2 {
+		t.Fatalf("cores = %d", len(cores))
+	}
+	if cores[0].total != 500 || cores[0].idle != 425 {
+		t.Fatalf("core0 = %+v", cores[0])
+	}
+	if _, err := parseCPUCores([]byte("cpu  1 2 3 4 5 6 7 8\n")); err == nil {
+		t.Fatal("expected error without per-core lines")
+	}
+}
+
+func TestCPUPerCoreTwoTicks(t *testing.T) {
+	stat := "cpu  100 0 50 850 0 0 0 0 0 0\ncpu0 50 0 25 425 0 0 0 0 0 0\ncpu1 50 0 25 425 0 0 0 0 0 0\n"
+	withReadFile(map[string]string{"/proc/stat": stat}, t)
+	oldRoot := hwmonRoot
+	hwmonRoot = t.TempDir()
+	t.Cleanup(func() { hwmonRoot = oldRoot })
+
+	c := &CPUCollector{}
+	first, err := c.Collect(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(first.Summary, "cores:") {
+		t.Fatalf("first tick should not report cores: %q", first.Summary)
+	}
+
+	readFile = func(path string) ([]byte, error) {
+		if path == "/proc/stat" {
+			return []byte("cpu  250 0 75 1175 0 0 0 0 0 0\ncpu0 100 0 125 475 0 0 0 0 0 0\ncpu1 150 0 25 625 0 0 0 0 0 0\n"), nil
+		}
+		return nil, os.ErrNotExist
+	}
+	second, err := c.Collect(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(second.Summary, "cores: 75 33") {
+		t.Fatalf("second summary = %q", second.Summary)
+	}
+}

@@ -13,6 +13,7 @@ func DefaultRegistry(enabled func(string) bool) *Registry {
 		"storage": &StorageCollector{},
 		"network": &NetworkCollector{},
 		"battery": &BatteryCollector{},
+		"sensors": &SensorsCollector{},
 	}
 	for name, c := range all {
 		if enabled(name) {

@@ -3,6 +3,7 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
@@ -21,25 +22,49 @@ const appID = "com.github.RakhaYandra.fukurou"
 // as unavailable instead of stalling the dashboard.
 const collectorTimeout = 2 * time.Second
 
-const css = `
-window {
-	background-color: #1a1d21;
-	border-radius: 12px;
-	border: 1px solid #343941;
+type palette struct {
+	window, border, title, modName, mono, dim, ok, card, trough, fill string
 }
-.title { color: #e6e9ef; font-size: 16px; font-weight: 700; }
-.mod-name { color: #9aa3b2; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
-.mono { color: #e6e9ef; font-size: 13px; font-family: monospace; }
-.dim { color: #565f6e; font-size: 12px; }
-.ok { color: #9ece6a; font-size: 12px; }
+
+var palettes = map[string]palette{
+	"dark": {
+		window: "#1a1d21", border: "#343941", title: "#e6e9ef",
+		modName: "#9aa3b2", mono: "#e6e9ef", dim: "#565f6e", ok: "#9ece6a",
+		card: "#22262c", trough: "#343941", fill: "#7aa2f7",
+	},
+	"light": {
+		window: "#f7f8fa", border: "#d6dae1", title: "#1b1f24",
+		modName: "#5c6574", mono: "#1b1f24", dim: "#9aa3b2", ok: "#4c8c2b",
+		card: "#ffffff", trough: "#e3e7ee", fill: "#3b6fd4",
+	},
+}
+
+func cssFor(theme string) string {
+	p, ok := palettes[theme]
+	if !ok {
+		p = palettes["dark"]
+	}
+	return fmt.Sprintf(`
+window {
+	background-color: %s;
+	border-radius: 12px;
+	border: 1px solid %s;
+}
+.title { color: %s; font-size: 16px; font-weight: 700; }
+.mod-name { color: %s; font-size: 12px; font-weight: 700; letter-spacing: 1px; }
+.mono { color: %s; font-size: 13px; font-family: monospace; }
+.dim { color: %s; font-size: 12px; }
+.ok { color: %s; font-size: 12px; }
 .card {
-	background-color: #22262c;
+	background-color: %s;
 	border-radius: 8px;
 	padding: 10px 12px;
 }
-levelbar trough { background-color: #343941; border-radius: 4px; min-height: 6px; }
-levelbar block.filled { background-color: #7aa2f7; border-radius: 4px; }
-`
+levelbar > trough { background: %s; border: none; border-radius: 4px; min-height: 6px; }
+levelbar > trough > block { background: %s; border: none; border-radius: 4px; box-shadow: none; }
+levelbar > trough > block.filled { background: %s; border: none; border-radius: 4px; }
+`, p.window, p.border, p.title, p.modName, p.mono, p.dim, p.ok, p.card, p.trough, p.trough, p.fill)
+}
 
 // Run shows the live dashboard until dismissed (ESC, close, or ctx cancel).
 // Returns the process exit code.
@@ -58,7 +83,7 @@ func Run(ctx context.Context, cfg config.Config, version string) int {
 }
 
 func activate(ctx context.Context, app *gtk.Application, cfg config.Config, version string) {
-	applyCSS()
+	applyCSS(cfg.Panel.Theme)
 
 	win := gtk.NewApplicationWindow(app)
 	win.SetTitle("Fukurou")
@@ -127,9 +152,9 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 	}()
 }
 
-func applyCSS() {
+func applyCSS(theme string) {
 	prov := gtk.NewCSSProvider()
-	prov.LoadFromString(css)
+	prov.LoadFromString(cssFor(theme))
 	display := gdk.DisplayGetDefault()
 	gtk.StyleContextAddProviderForDisplay(display, prov, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 }

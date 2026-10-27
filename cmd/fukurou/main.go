@@ -15,7 +15,7 @@ import (
 	"github.com/RakhaYandra/fukurou/internal/ui"
 )
 
-var version = "v0.1.0-dev"
+var version = "v0.2.0-dev"
 
 func main() {
 	var (

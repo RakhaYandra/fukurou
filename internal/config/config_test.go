@@ -15,7 +15,7 @@ func TestDefaultSane(t *testing.T) {
 	if c.Refresh.Interval.Duration != time.Second {
 		t.Fatalf("interval = %v", c.Refresh.Interval.Duration)
 	}
-	for _, m := range []string{"system", "cpu", "memory", "gpu", "storage", "network", "battery"} {
+	for _, m := range []string{"system", "cpu", "memory", "gpu", "sensors", "storage", "network", "battery"} {
 		if !c.Enabled(m) {
 			t.Fatalf("module %s should default on", m)
 		}
@@ -71,5 +71,26 @@ func TestNormalizeClamps(t *testing.T) {
 	c = c.Normalize()
 	if c.Panel.Width != 320 || c.Panel.Opacity != 1 {
 		t.Fatalf("not clamped: %+v", c.Panel)
+	}
+}
+
+func TestTheme(t *testing.T) {
+	if got := Default().Panel.Theme; got != "dark" {
+		t.Fatalf("default theme = %q", got)
+	}
+	p := filepath.Join(t.TempDir(), "t.yaml")
+	if err := os.WriteFile(p, []byte("panel:\n  theme: light\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Panel.Theme != "light" {
+		t.Fatalf("theme = %q", c.Panel.Theme)
+	}
+	c.Panel.Theme = "solarized"
+	if got := c.Normalize().Panel.Theme; got != "dark" {
+		t.Fatalf("unknown theme = %q", got)
 	}
 }

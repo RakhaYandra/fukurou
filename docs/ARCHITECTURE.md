@@ -8,7 +8,7 @@ Modular layered architecture. UI never touches `/proc` directly.
 ├───────────────┤
 │  Application  │  orchestration, state, scheduler
 ├───────────────┤
-│ Collectors    │  CPU / MEM / GPU / storage / net / system
+│ Collectors    │  CPU (+ per-core) / MEM / GPU / sensors / storage / net / system / battery
 ├───────────────┤
 │ Linux         │  /proc /sys / sensors / GPU APIs
 └───────────────┘
