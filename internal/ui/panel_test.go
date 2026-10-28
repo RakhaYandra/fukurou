@@ -16,3 +16,15 @@ func TestCSSForTheme(t *testing.T) {
 		t.Fatal("unknown theme should fall back to dark")
 	}
 }
+
+func TestMaxContentHeight(t *testing.T) {
+	if got := maxContentHeight(1080); got != 892 {
+		t.Fatalf("1080p = %d", got)
+	}
+	if got := maxContentHeight(0); got != 0 {
+		t.Fatalf("unknown monitor = %d", got)
+	}
+	if got := maxContentHeight(100); got <= 0 {
+		t.Fatalf("tiny monitor = %d", got)
+	}
+}

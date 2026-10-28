@@ -87,7 +87,6 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 
 	win := gtk.NewApplicationWindow(app)
 	win.SetTitle("Fukurou")
-	win.SetDefaultSize(cfg.Panel.Width, -1)
 	win.SetResizable(false)
 	win.SetDecorated(false)
 	win.SetOpacity(cfg.Panel.Opacity)
@@ -112,8 +111,16 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 	root.Append(head)
 
 	dash := newDashboard(cfg.Enabled)
-	root.Append(dash.box)
+	scrolled := gtk.NewScrolledWindow()
+	scrolled.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
+	scrolled.SetPropagateNaturalHeight(true)
+	if h := maxContentHeight(monitorHeight()); h > 0 {
+		scrolled.SetMaxContentHeight(h)
+	}
+	scrolled.SetChild(dash.box)
+	root.Append(scrolled)
 	win.SetChild(root)
+	win.SetDefaultSize(cfg.Panel.Width, -1)
 
 	reg := collectors.DefaultRegistry(cfg.Enabled)
 	refresh := func() {
@@ -157,4 +164,32 @@ func applyCSS(theme string) {
 	prov.LoadFromString(cssFor(theme))
 	display := gdk.DisplayGetDefault()
 	gtk.StyleContextAddProviderForDisplay(display, prov, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+}
+
+const (
+	chromeHeight = 80 // header, root margins, and spacing around the card list
+	maxPanelFrac = 0.9
+)
+
+func maxContentHeight(monitor int) int {
+	if monitor <= 0 {
+		return 0
+	}
+	return int(float64(monitor)*maxPanelFrac) - chromeHeight
+}
+
+func monitorHeight() int {
+	display := gdk.DisplayGetDefault()
+	if display == nil {
+		return 0
+	}
+	model := display.Monitors()
+	if model == nil || model.NItems() == 0 {
+		return 0
+	}
+	obj := model.Item(0)
+	if obj == nil {
+		return 0
+	}
+	return (&gdk.Monitor{Object: obj}).Geometry().Height()
 }
