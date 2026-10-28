@@ -72,7 +72,14 @@ func Run(ctx context.Context, cfg config.Config, version string) int {
 	// ApplicationFlags(0) == G_APPLICATION_DEFAULT_FLAGS; avoids the
 	// deprecated ApplicationFlagsNone alias in this gotk4 version.
 	app := gtk.NewApplication(appID, gio.ApplicationFlags(0))
-	app.ConnectActivate(func() { activate(ctx, app, cfg, version) })
+	var win *gtk.ApplicationWindow
+	app.ConnectActivate(func() {
+		if win != nil {
+			win.Present()
+			return
+		}
+		win = activate(ctx, app, cfg, version)
+	})
 	go func() {
 		<-ctx.Done()
 		glib.IdleAdd(app.Quit)
@@ -82,7 +89,7 @@ func Run(ctx context.Context, cfg config.Config, version string) int {
 	return app.Run(nil)
 }
 
-func activate(ctx context.Context, app *gtk.Application, cfg config.Config, version string) {
+func activate(ctx context.Context, app *gtk.Application, cfg config.Config, version string) *gtk.ApplicationWindow {
 	applyCSS(cfg.Panel.Theme)
 
 	win := gtk.NewApplicationWindow(app)
@@ -142,6 +149,11 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 	})
 	win.AddController(keys)
 
+	win.ConnectCloseRequest(func() bool {
+		app.Quit()
+		return false
+	})
+
 	win.Present()
 
 	go func() {
@@ -157,6 +169,7 @@ func activate(ctx context.Context, app *gtk.Application, cfg config.Config, vers
 			}
 		}
 	}()
+	return win
 }
 
 func applyCSS(theme string) {
