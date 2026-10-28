@@ -3,7 +3,7 @@
 Lightweight floating system dashboard for Linux (Wayland/Hyprland).
 Read-only: observe, don't control. No root, no telemetry, no network calls.
 
-> Status: **v0.2.0** — 8 live modules, per-core CPU, light theme, scrollable panel.
+> Status: **v0.2.1** — 8 live modules, per-core CPU, light theme, scrollable panel.
 
 ## Requirements
 
